@@ -6,8 +6,22 @@
   };
 
   outputs =
+    inputs:
+    let
+      # Create our own core inputs
+      core-inputs = inputs // {
+        src = ./.;
+      };
+    in
     { self, nixpkgs }:
     let
+      library = nixpkgs.lib;
+      packages = nixpkgs.legacyPackages.x86_64-linux;
+
+      mkLib = import ./lib {
+        lib = library;
+        pkgs = packages;
+      };
 
     in
     {
