@@ -47,8 +47,9 @@
             inherit inputs src arkadia;
           };
           # We remove attr inputs and src from the flake-option
-          # because we dont need them.
-          flake-options = builtins/removeAttrs flake-and-lib-options [
+          # because we dont need them, we only need arkadia options
+          # as flake options
+          flake-options = builtins.removeAttrs flake-and-lib-options [
             "inputs"
             "src"
           ];
@@ -64,7 +65,51 @@
         x86_64-darwin = inputs.nixpkgs.legacyPackages.x86_64-darwin.alejandra;
         aarch64-darwin = inputs.nixpkgs.legacyPackages.aarch64-darwin.alejandra;
       };
+      /*
+        `rec` means recursive attribute set
 
+        It lets attributes reference each other inside the same set.
+        Without rec, values can’t see siblings; with it, they can.
+      */
+
+      # TODO: Understand in plain english before
+      # moving on
+      arkadia = rec {
+        # ? are we definfing an empty variable here with config
+        # i thought that isnt possible
+        /*
+          The rec allow attributes inside the set to refer to
+          other attribute in the same set, example: `raw-config=config`
+          workks because `config` is later define in the set
+        */
+        raw-config = config;
+
+        config = {
+          root = "./.";
+          src = "./.";
+
+          namespace = "arkadia";
+          lib-dir = "snowfall-lib";
+
+          meta = {
+            name = "arkadia-lib";
+            title = "Arkadia Library";
+          };
+        };
+
+        internal-lib =
+          let
+            lib = mkLib {
+              src = ./.;
+
+              inputs = inputs // {
+                self = { };
+
+              };
+            };
+          in
+          builtins.removeAttrs lib.arkadia [ "internal" ];
+      };
       # packages.x86_64-linux.hello = nixpkgs.legacyPackages.x86_64-linux.hello;
       #
       # packages.x86_64-linux.default = self.packages.x86_64-linux.hello;
