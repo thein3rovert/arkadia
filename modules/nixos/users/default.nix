@@ -25,7 +25,7 @@ let
   usernames = builtins.attrNames cfg.users;
 
   create-users =
-    system-users: name:
+    system-users: name: description:
     let
       user = cfg.users.${name};
 
@@ -43,7 +43,7 @@ let
         ${name} = {
           isNormalUser = mkDefault true;
           name = mkDefault name;
-
+          description = mkDefault description;
           # cfg.users.{{name}}.home.path = [];
           home = mkDefault user.home.path;
           group = mkDefault "users";
