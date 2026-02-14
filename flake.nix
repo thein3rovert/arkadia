@@ -74,6 +74,7 @@
 
       # TODO: Understand in plain english before
       # moving on
+
       arkadia = rec {
         # ? are we definfing an empty variable here with config
         # i thought that isnt possible
@@ -89,7 +90,7 @@
           src = "./.";
 
           namespace = "arkadia";
-          lib-dir = "snowfall-lib";
+          lib-dir = "arkadia-lib";
 
           meta = {
             name = "arkadia-lib";
