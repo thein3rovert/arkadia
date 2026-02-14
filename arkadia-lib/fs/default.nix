@@ -38,5 +38,31 @@ in
     is-directory-type = type: type == "directory";
     is-unknown-tye = type: type == "unknown";
 
+    ## Get a file path relative to the user's flake.
+    ## Example Usage:
+    ## ```nix
+    ## get-file "systems"
+    ## ```
+    ## Result:
+    ## ```nix
+    ## "/user-source/systems"
+    ## ```
+    #@ String -> String
+    # (./ )
+    get-file = filePath: "${user-inputs.src}/${filePath}";
+
+    ## Get a file path relative to the user's snowfall directory.
+    ## Example Usage:
+    ## ```nix
+    ## get-snowfall-file "systems"
+    ## ```
+    ## Result:
+    ## ```nix
+    ## "/user-source/snowfall-dir/systems"
+    ## ```
+    #@ String -> String
+    # (./arkadia-lib)
+    get-arkadia-file = filePath: "${arkadia-config.root}/${filePath}";
+
   };
 }
