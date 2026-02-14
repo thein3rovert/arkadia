@@ -61,6 +61,7 @@ let
   # ==========================================================================
   # Pull specific functions from nixpkgs.lib that we need
   # This is like "importing" functions in other languages
+  # Basically inputs.nixpkgs.lib
   inherit (core-inputs.nixpkgs.lib)
     assertMsg # For runtime assertions with error messages
     fix # For creating recursive attribute sets (enables self-reference)
@@ -103,16 +104,18 @@ let
     in
     libs;
 
+  # Extract lib from inputs and remove the self from exracted lib
   # Remove the 'self' attribute from a set (self creates circular refs)
+  # INFO: Since it getting from flake and flake has alot of "self.<>"
   without-self = attrs: builtins.removeAttrs attrs [ "self" ];
 
   # ==========================================================================
-  # COLLECT LIBRARIES FROM INPUTS
+  # COLLECT LIBRARIES FROM INPUTS ( WITHOUT THE SELF ) since it's been removed
   # ==========================================================================
-  # Get lib attributes from core framework inputs (excluding self)
+  # Get lib and remove self from core flake inputs (excluding self)
   core-inputs-libs = get-libs (without-self core-inputs);
 
-  # Get lib attributes from user flake inputs (excluding self)
+  # Get lib  and remove self from user flake inputs (excluding self)
   user-inputs-libs = get-libs (without-self user-inputs);
 
   # ==========================================================================
@@ -120,15 +123,19 @@ let
   # ==========================================================================
   # Define where the framework's built-in library modules live
   # This path is relative to the framework's source code
-  arkadia-lib-root = "${core-inputs.src}/arkadia-lib/lib";
+  arkadia-lib-root = "${core-inputs.src}/arkadia-lib"; # Main path to arkadia lib
 
   # Discover all subdirectories in the lib folder
   # Each directory should contain a default.nix that exports library functions
+  /*
+    Make sure that all dir in the arkadia-lib has a default.nix file
+    and make sure that are all directories
+  */
   arkadia-lib-dirs =
     let
-      files = builtins.readDir arkadia-lib-root;
-      dirs = filterAttrs (name: kind: kind == "directory") files;
-      names = builtins.attrNames dirs;
+      files = builtins.readDir arkadia-lib-root; # Read from the arkadia-dir root folder
+      dirs = filterAttrs (name: kind: kind == "directory") files; # Make sure the file in the arkadia dir are actual directories
+      names = builtins.attrNames dirs; # Get the names of the dirs
     in
     names;
 
