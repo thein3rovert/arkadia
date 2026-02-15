@@ -26,10 +26,7 @@
       # nixpkgs library to make them available.
       # USAGE: mkLib {inherit inputs; src = ./.; ...}
       # RESULT: lib
-      mkLib = import ./arkadia-lib {
-        # lib = library;
-        # pkgs = packages;
-      };
+      mkLib = import ./arkadia-lib core-inputs;
 
       # Create flake option
       mkFlake =
