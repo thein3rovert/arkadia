@@ -92,6 +92,7 @@ in
                   inherit system target format;
 
                   # Virtual system detection (placeholder for future)
+                  # TODO: Create system detection modules next
                   virtual = args.virtual or false;
                   systems = args.systems or { };
 
