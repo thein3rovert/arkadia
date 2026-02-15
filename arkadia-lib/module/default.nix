@@ -101,12 +101,12 @@ in
                   virtual = args.virtual or false;
                   systems = args.systems or { };
 
-                  # Make the full library available to modules
-                  lib = arkadia-lib;
+                  # Pass the library but not the full arkadia-lib (which contains user-inputs)
+                  # Only pass what the module actually needs
+                  lib = args.lib or core-inputs.nixpkgs.lib;
+                  arkadia-lib = arkadia-lib.arkadia; # Only pass the utility functions
 
                   # Filter out src and self from inputs to avoid circular references
-                  # Remove self: self.nixosModules -> this module -> inputs -> self (circular)
-                  # Remove src: not needed in module evaluation
                   inputs = arkadia-lib.flake.without-self (arkadia-lib.flake.without-src user-inputs);
                   namespace = arkadia-config.namespace;
                 };
