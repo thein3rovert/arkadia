@@ -184,33 +184,8 @@ let
   # By convention, this is in a 'lib/' directory at project root
   user-lib-root = "${user-inputs.src}/lib";
 
-  # Discover all .nix files in user's lib directory recursively
-  # This allows users to organize functions in subdirectories
-  user-lib-modules =
-    if builtins.pathExists user-lib-root then
-      # Recursively find all .nix files
-      let
-        collect-nix-files =
-          dir:
-          let
-            entries = builtins.readDir dir;
-            process-entry =
-              name: type:
-              let
-                path = "${dir}/${name}";
-              in
-              if type == "regular" && builtins.match ".*\\.nix" name != null then
-                [ path ]
-              else if type == "directory" then
-                collect-nix-files path
-              else
-                [ ];
-          in
-          builtins.concatLists (builtins.attrValues (builtins.mapAttrs process-entry entries));
-      in
-      collect-nix-files user-lib-root
-    else
-      [ ];
+  # Discover all default .nix files in user's lib directory recursively
+  user-lib-modules = arkadia-lib.fs.get-default-nix-files-recursive user-lib-root;
 
   # Load user's library modules
   user-lib = fix (
