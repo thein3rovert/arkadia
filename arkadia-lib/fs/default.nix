@@ -141,7 +141,7 @@ in
           let
             filePath' = "${filePath}/${name}";
           in
-          if is-directory-type kind then get-files-recursive filePath else filePath;
+          if is-directory-type kind then get-files-recursive filePath' else filePath';
         files = arkadia-lib.attrs.map-concat-attrs-to-list map-file filtered-entries;
       in
       files;

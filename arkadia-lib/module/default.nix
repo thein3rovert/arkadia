@@ -73,9 +73,55 @@ in
           modules: metadata:
           modules
           // {
-            # Simply return the path - let the NixOS module system handle importing
-            # This avoids circular references and is how flake-parts expects modules
-            ${metadata.name} = metadata.path;
+            ${metadata.name} =
+              args@{ pkgs, ... }:
+              let
+                # Extract system and target information
+                # NOTE: home-manager *requires* modules to specify named arguments
+                # or it will not pass values in. For this reason we must specify
+                # things like `pkgs` as a named attribute.
+                system = args.system or pkgs.stdenv.hostPlatform.system;
+                target = args.target or system;
+
+                # Determine the system format (linux, darwin, etc.)
+                # For now, simplified version - just check if it's Darwin
+                format = if builtins.match ".*-darwin" target != null then "darwin" else "linux";
+
+                # Replicates the specialArgs pattern from Arkadia Lib's system builder
+                modified-args = args // {
+                  inherit
+                    system
+                    target
+                    format
+                    pkgs
+                    ;
+
+                  # Virtual system detection (placeholder for future)
+                  # TODO: Create system detection modules next
+                  virtual = args.virtual or false;
+                  systems = args.systems or { };
+
+                  # Pass the library but not the full arkadia-lib (which contains user-inputs)
+                  # Only pass what the module actually needs
+                  lib = args.lib or core-inputs.nixpkgs.lib;
+                  arkadia-lib = arkadia-lib.arkadia; # Only pass the utility functions
+
+                  # Filter out src and self from inputs to avoid circular references
+                  inputs = arkadia-lib.flake.without-self (arkadia-lib.flake.without-src user-inputs);
+                  namespace = arkadia-config.namespace;
+                };
+
+                # Import the user's module
+                imported-user-module = import metadata.path;
+
+                # Call it with args if it's a function, otherwise use as-is
+                user-module =
+                  if isFunction imported-user-module then
+                    imported-user-module modified-args
+                  else
+                    imported-user-module;
+              in
+              user-module // { _file = metadata.path; };
           };
 
         # Build the modules attribute set
