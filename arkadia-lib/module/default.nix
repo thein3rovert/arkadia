@@ -104,8 +104,10 @@ in
                   # Make the full library available to modules
                   lib = arkadia-lib;
 
-                  # Filter out src from inputs to avoid circular references
-                  inputs = arkadia-lib.flake.without-src user-inputs;
+                  # Filter out src and self from inputs to avoid circular references
+                  # Remove self: self.nixosModules -> this module -> inputs -> self (circular)
+                  # Remove src: not needed in module evaluation
+                  inputs = arkadia-lib.flake.without-self (arkadia-lib.flake.without-src user-inputs);
                   namespace = arkadia-config.namespace;
                 };
 
