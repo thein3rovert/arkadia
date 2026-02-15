@@ -47,15 +47,20 @@ in
         # Find all default.nix files in the modules directory
         user-modules = arkadia-lib.fs.get-default-nix-files-recursive src;
 
+        # Force src to store path by importing it, then get its string representation
+        # This ensures we're comparing store paths to store paths
+        src-store-path = builtins.unsafeDiscardStringContext "${src}";
+
         # Extract module name from file path
-        # Converts "/path/to/modules/nixos/networking/default.nix" -> "networking"
+        # Converts "/nix/store/xxx/containers/default.nix" -> "containers"
         create-module-metadata = module: {
           name =
             let
-              # Remove the base path and "/default.nix" from the module path
-              path-name = builtins.replaceStrings [ (builtins.toString src) "/default.nix" ] [ "" "" ] (
-                builtins.unsafeDiscardStringContext module
-              );
+              # Get the module path without string context
+              module-str = builtins.unsafeDiscardStringContext module;
+
+              # Remove the src path and "/default.nix" from the module path
+              path-name = builtins.replaceStrings [ src-store-path "/default.nix" ] [ "" "" ] module-str;
             in
             # Remove leading slash if present
             if hasPrefix "/" path-name then
