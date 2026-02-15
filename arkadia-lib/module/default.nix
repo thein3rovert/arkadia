@@ -76,15 +76,31 @@ in
             ${metadata.name} =
               args@{ pkgs, ... }:
               let
-                # Extract or default system information
+                # Extract system and target information
+                # NOTE: home-manager *requires* modules to specify named arguments
+                # or it will not pass values in. For this reason we must specify
+                # things like `pkgs` as a named attribute.
                 system = args.system or pkgs.stdenv.hostPlatform.system;
+                target = args.target or system;
 
-                # Replicates the specialArgs pattern
+                # Determine the system format (linux, darwin, etc.)
+                # For now, simplified version - just check if it's Darwin
+                format = if builtins.match ".*-darwin" target != null then "darwin" else "linux";
+
+                # Replicates the specialArgs pattern from Arkadia Lib's system builder
                 modified-args = args // {
-                  inherit system;
+                  inherit system target format;
+
+                  # Virtual system detection (placeholder for future)
+                  virtual = args.virtual or false;
+                  systems = args.systems or { };
+
+                  # Make the full library available to modules
                   lib = arkadia-lib;
                   pkgs = user-inputs.self.pkgs.${system}.nixpkgs or pkgs;
-                  inputs = user-inputs;
+
+                  # Filter out src from inputs to avoid circular references
+                  inputs = arkadia-lib.flake.without-src user-inputs;
                   namespace = arkadia-config.namespace;
                 };
 
