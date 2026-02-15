@@ -89,7 +89,12 @@ in
 
                 # Replicates the specialArgs pattern from Arkadia Lib's system builder
                 modified-args = args // {
-                  inherit system target format;
+                  inherit
+                    system
+                    target
+                    format
+                    pkgs
+                    ;
 
                   # Virtual system detection (placeholder for future)
                   # TODO: Create system detection modules next
@@ -98,7 +103,6 @@ in
 
                   # Make the full library available to modules
                   lib = arkadia-lib;
-                  pkgs = user-inputs.self.pkgs.${system}.nixpkgs or pkgs;
 
                   # Filter out src from inputs to avoid circular references
                   inputs = arkadia-lib.flake.without-src user-inputs;
