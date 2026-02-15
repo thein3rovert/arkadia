@@ -1,8 +1,8 @@
 {
   core-inputs,
   user-inputs,
-  snowfall-lib,
-  snowfall-config,
+  arkadia-lib,
+  arkadia-config,
 }:
 let
   inherit (core-inputs.nixpkgs.lib)
@@ -41,26 +41,26 @@ rec {
     ## Remove the `src` and `self` attributes from an attribute set.
     ## Example Usage:
     ## ```nix
-    ## without-snowfall-inputs { self = {}; src = ./.; x = true; }
+    ## without-arkadia-inputs { self = {}; src = ./.; x = true; }
     ## ```
     ## Result:
     ## ```nix
     ## { x = true; }
     ## ```
     #@ Attrs -> Attrs
-    without-snowfall-inputs = snowfall-lib.fp.compose without-self without-src;
+    without-arkadia-inputs = arkadia-lib.fp.compose without-self without-src;
 
-    ## Remove Snowfall-specific attributes so the rest can be safely passed to flake-utils-plus.
+    ## Remove Arkadia-specific attributes so the rest can be safely passed to flake-utils-plus.
     ## Example Usage:
     ## ```nix
-    ## without-snowfall-options { src = ./.; x = true; }
+    ## without-arkadia-options { src = ./.; x = true; }
     ## ```
     ## Result:
     ## ```nix
     ## { x = true; }
     ## ```
     #@ Attrs -> Attrs
-    without-snowfall-options =
+    without-arkadia-options =
       flake-options:
       builtins.removeAttrs flake-options [
         "systems"
@@ -76,7 +76,7 @@ rec {
         "templates"
         "checks"
         "alias"
-        "snowfall"
+        "arkadia"
       ];
 
     ## Transform an attribute set of inputs into an attribute set where the values are the inputs' `lib` attribute. Entries without a `lib` attribute are removed.
