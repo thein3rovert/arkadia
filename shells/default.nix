@@ -32,7 +32,7 @@
   };
 
   # Import all individual shell environments
-  # python = import ./python.nix {inherit pkgs inputs;};
-  # devops = import ./devops.nix {inherit pkgs inputs;};
+  python = import ./python.nix { inherit pkgs inputs; };
+  devops = import ./devops.nix { inherit pkgs inputs; };
   # coding = import ./coding.nix {inherit pkgs inputs agents;};
 }
