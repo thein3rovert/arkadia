@@ -1,0 +1,13 @@
+{
+  "version": "1.15.0",
+  "sources": {
+    "aarch64-linux": {
+      "url": "https://github.com/kestra-io/kestractl/releases/download/1.15.0/kestractl_1.15.0_linux_arm64.tar.gz",
+      "hash": "sha256-iBkhetgGy/8Nljxb0yO8hjln8LYgTHTOPdNsee1W/U4="
+    },
+    "x86_64-linux": {
+      "url": "https://github.com/kestra-io/kestractl/releases/download/1.15.0/kestractl_1.15.0_linux_amd64.tar.gz",
+      "hash": "sha256-hvQsOIODwDPZEW4wyZhd5Sb70tQsfwU4ZrHrxYK3VKc="
+    }
+  }
+}
