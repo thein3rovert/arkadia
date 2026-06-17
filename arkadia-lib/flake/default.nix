@@ -99,108 +99,131 @@ rec {
       libs;
   };
 
-  # mkFlake = full-flake-options: let
-  #   namespace = snowfall-config.namespace or "internal";
-  #   custom-flake-options = flake.without-snowfall-options full-flake-options;
-  #   alias = full-flake-options.alias or {};
-  #   homes = snowfall-lib.home.create-homes (full-flake-options.homes or {});
-  #   systems = snowfall-lib.system.create-systems {
-  #     systems = full-flake-options.systems or {};
-  #     homes = full-flake-options.homes or {};
-  #   };
-  #   hosts = snowfall-lib.attrs.merge-shallow [(full-flake-options.systems.hosts or {}) systems homes];
-  #   templates = snowfall-lib.template.create-templates {
-  #     overrides = full-flake-options.templates or {};
-  #     alias = alias.templates or {};
-  #   };
-  #   nixos-modules = snowfall-lib.module.create-modules {
-  #     src = snowfall-lib.fs.get-snowfall-file "modules/nixos";
-  #     overrides = full-flake-options.modules.nixos or {};
-  #     alias = alias.modules.nixos or {};
-  #   };
-  #   darwin-modules = snowfall-lib.module.create-modules {
-  #     src = snowfall-lib.fs.get-snowfall-file "modules/darwin";
-  #     overrides = full-flake-options.modules.darwin or {};
-  #     alias = alias.modules.darwin or {};
-  #   };
-  #   home-modules = snowfall-lib.module.create-modules {
-  #     src = snowfall-lib.fs.get-snowfall-file "modules/home";
-  #     overrides = full-flake-options.modules.home or {};
-  #     alias = alias.modules.home or {};
-  #   };
-  #   overlays = snowfall-lib.overlay.create-overlays {
-  #     inherit namespace;
-  #     extra-overlays = full-flake-options.extra-exported-overlays or {};
-  #   };
-  #
-  #   outputs-builder = channels: let
-  #     user-outputs-builder =
-  #       full-flake-options.outputs-builder
-  #       or full-flake-options.outputsBuilder
-  #       or (const {});
-  #     user-outputs = user-outputs-builder channels;
-  #     packages = snowfall-lib.package.create-packages {
-  #       inherit channels namespace;
-  #       overrides = (full-flake-options.packages or {}) // (user-outputs.packages or {});
-  #       alias = alias.packages or {};
-  #     };
-  #     shells = snowfall-lib.shell.create-shells {
-  #       inherit channels;
-  #       overrides = (full-flake-options.shells or {}) // (user-outputs.devShells or {});
-  #       alias = alias.shells or {};
-  #     };
-  #     checks = snowfall-lib.check.create-checks {
-  #       inherit channels;
-  #       overrides = (full-flake-options.checks or {}) // (user-outputs.checks or {});
-  #       alias = alias.checks or {};
-  #     };
-  #
-  #     outputs = {
-  #       inherit packages checks;
-  #
-  #       devShells = shells;
-  #     };
-  #   in
-  #     snowfall-lib.attrs.merge-deep [user-outputs outputs];
-  #
-  #   flake-options =
-  #     custom-flake-options
-  #     // {
-  #       inherit hosts templates;
-  #       inherit (user-inputs) self;
-  #
-  #       lib = snowfall-lib.internal.user-lib;
-  #       inputs = snowfall-lib.flake.without-src user-inputs;
-  #
-  #       nixosModules = nixos-modules;
-  #       darwinModules = darwin-modules;
-  #       homeModules = home-modules;
-  #
-  #       channelsConfig = full-flake-options.channels-config or {};
-  #
-  #       channels.nixpkgs.overlaysBuilder = snowfall-lib.overlay.create-overlays-builder {
-  #         inherit namespace;
-  #         extra-overlays = full-flake-options.overlays or [];
-  #       };
-  #
-  #       outputsBuilder = outputs-builder;
-  #
-  #       snowfall = {
-  #         config = snowfall-config;
-  #         raw-config = full-flake-options.snowfall or {};
-  #         user-lib = snowfall-lib.internal.user-lib;
-  #       };
-  #     };
-  #
-  #   flake-utils-plus-outputs =
-  #     core-inputs.flake-utils-plus.lib.mkFlake flake-options;
-  #
-  #   flake-outputs =
-  #     flake-utils-plus-outputs
-  #     // {
-  #       inherit overlays;
-  #     };
-  # in
+  ## Build a complete flake with auto-discovered packages, modules, overlays, and shells
+  ## Example Usage:
+  ## ```nix
+  ## mkFlake {
+  ##   inputs = inputs;
+  ##   src = ./.;
+  ##   systems = ["x86_64-linux" "aarch64-linux"];
+  ## }
+  ## ```
+  #@ Attrs -> Attrs
+  mkFlake =
+    flake-options@{
+      inputs,
+      src ? ./.,
+      systems ? [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ],
+      ...
+    }:
+    let
+      inherit (core-inputs.nixpkgs.lib)
+        genAttrs
+        optionalAttrs
+        ;
 
-  # flake-outputs;
+      # Create lib for this flake
+      lib = arkadia-lib;
+
+      # Helper to create pkgs for a given system
+      createPkgsFor = system: import inputs.nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
+
+      # Helper function for all systems
+      forAllSystems = genAttrs systems;
+
+      # Auto-discover packages from packages/ directory
+      packagesPath = "${src}/packages";
+      hasPackages = builtins.pathExists packagesPath;
+
+      # Auto-discover modules
+      nixosModulesPath = "${src}/modules/nixos";
+      homeModulesPath = "${src}/modules/home";
+      darwinModulesPath = "${src}/modules/darwin";
+
+      hasNixosModules = builtins.pathExists nixosModulesPath;
+      hasHomeModules = builtins.pathExists homeModulesPath;
+      hasDarwinModules = builtins.pathExists darwinModulesPath;
+
+      # Auto-discover overlays
+      overlaysPath = "${src}/overlays";
+      hasOverlays = builtins.pathExists overlaysPath;
+
+      # Auto-discover shells
+      shellsPath = "${src}/shells";
+      hasShells = builtins.pathExists shellsPath;
+
+    in
+    {
+      # Export packages
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = createPkgsFor system;
+        in
+        if hasPackages then
+          import packagesPath { inherit pkgs inputs; }
+        else
+          { }
+      );
+
+      # Export NixOS modules
+      nixosModules = optionalAttrs hasNixosModules {
+        default = nixosModulesPath;
+      };
+
+      # Export Home Manager modules
+      homeManagerModules = optionalAttrs hasHomeModules {
+        default = import homeModulesPath;
+      };
+
+      # Export Darwin modules
+      darwinModules = optionalAttrs hasDarwinModules {
+        default = darwinModulesPath;
+      };
+
+      # Export overlays (only if default.nix exists)
+      overlays = optionalAttrs (hasOverlays && builtins.pathExists "${overlaysPath}/default.nix") (import overlaysPath);
+
+      # Export modifications overlay
+      modifications = if hasOverlays then
+        (final: prev: import "${overlaysPath}/mods" { inherit prev; })
+      else
+        (final: prev: { });
+
+      # Export library
+      lib = forAllSystems (system: lib);
+
+      # Export dev shells
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = createPkgsFor system;
+        in
+        if hasShells then
+          import shellsPath { inherit pkgs inputs; }
+        else
+          { }
+      );
+
+      # Export checks
+      checks = forAllSystems (
+        system:
+        let
+          pkgs = createPkgsFor system;
+          packages = if hasPackages then
+            import packagesPath { inherit pkgs inputs; }
+          else
+            { };
+        in
+        builtins.mapAttrs (name: pkg: pkgs.lib.hydraJob pkg) packages
+      );
+    };
 }

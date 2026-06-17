@@ -1,8 +1,9 @@
 {
-  description = "Arkadia Lib";
+  description = "Arkadia - Personal Nix framework and package repository";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    nixpkgs-master.url = "github:NixOS/nixpkgs/master";
   };
 
   outputs =
@@ -12,26 +13,16 @@
       core-inputs = inputs // {
         src = ./.;
       };
-      # in
-      # { self, nixpkgs }:
-      # let
-      # WARNING: Might need to remove this as im importing
-      # self and nixpkgs which might be needed by custom
-      # imputs above
 
-      # library = nixpkgs.lib;
-      # packages = nixpkgs.legacyPackages.x86_64-linux;
-
-      # Creating the llibrary, extending for now
-      # nixpkgs library to make them available.
+      # Creating the library, extending nixpkgs library to make them available.
       # USAGE: mkLib {inherit inputs; src = ./.; ...}
       # RESULT: lib
       mkLib = import ./arkadia-lib core-inputs;
 
-      # Create flake option
+      # Create flake builder function
+      # This wraps mkLib and passes the built lib to lib.mkFlake
       mkFlake =
         flake-and-lib-options@{
-          # What does the @ sign means?
           inputs,
           src,
           arkadia ? { },
@@ -39,59 +30,28 @@
         }:
         let
           lib = mkLib {
-            # Q: What input is mkflake inherting? is it
-            # the custom or the main?
             inherit inputs src arkadia;
           };
-          # We remove attr inputs and src from the flake-option
-          # because we dont need them, we only need arkadia options
-          # as flake options
+          # Only remove arkadia-specific options that mkFlake doesn't need
           flake-options = builtins.removeAttrs flake-and-lib-options [
-            "inputs"
-            "src"
+            "arkadia"
           ];
         in
         lib.mkFlake flake-options;
-    in
-    {
-      inherit mkLib mkFlake;
 
-      formatter = {
-        x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.alejandra;
-        aarch64-linux = inputs.nixpkgs.legacyPackages.aarch64-linux.alejandra;
-        x86_64-darwin = inputs.nixpkgs.legacyPackages.x86_64-darwin.alejandra;
-        aarch64-darwin = inputs.nixpkgs.legacyPackages.aarch64-darwin.alejandra;
-      };
-      /*
-        `rec` means recursive attribute set
-
-        It lets attributes reference each other inside the same set.
-        Without rec, values can’t see siblings; with it, they can.
-      */
-
-      # TODO: Understand in plain english before
-      # moving on
-
-      arkadia = rec {
-        # ? are we definfing an empty variable here with config
-        # i thought that isnt possible
-        /*
-          The rec allow attributes inside the set to refer to
-          other attribute in the same set, example: `raw-config=config`
-          workks because `config` is later define in the set
-        */
+      # Arkadia configuration for internal use
+      arkadia-config = rec {
         raw-config = config;
 
         config = {
           root = "./.";
           src = "./.";
-
           namespace = "arkadia";
           lib-dir = "arkadia-lib";
 
           meta = {
-            name = "arkadia-lib";
-            title = "Arkadia Library";
+            name = "arkadia";
+            title = "Arkadia - Personal Nix Repository";
           };
         };
 
@@ -99,18 +59,42 @@
           let
             lib = mkLib {
               src = ./.;
-
               inputs = inputs // {
                 self = { };
-
               };
             };
           in
           builtins.removeAttrs lib.arkadia [ "internal" ];
       };
-      # packages.x86_64-linux.hello = nixpkgs.legacyPackages.x86_64-linux.hello;
-      #
-      # packages.x86_64-linux.default = self.packages.x86_64-linux.hello;
 
+      # Use mkFlake to generate our own flake outputs (dogfooding)
+      personal-outputs = mkFlake {
+        inherit inputs;
+        src = ./.;
+        arkadia = arkadia-config.config;
+        systems = [
+          "x86_64-linux"
+          "aarch64-linux"
+          "x86_64-darwin"
+          "aarch64-darwin"
+        ];
+      };
+    in
+    # Merge framework exports with personal flake outputs
+    personal-outputs
+    // {
+      # Export framework functions for other projects
+      inherit mkLib mkFlake;
+
+      # Export arkadia config for reference
+      arkadia = arkadia-config;
+
+      # Formatter for 'nix fmt'
+      formatter = {
+        x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.alejandra;
+        aarch64-linux = inputs.nixpkgs.legacyPackages.aarch64-linux.alejandra;
+        x86_64-darwin = inputs.nixpkgs.legacyPackages.x86_64-darwin.alejandra;
+        aarch64-darwin = inputs.nixpkgs.legacyPackages.aarch64-darwin.alejandra;
+      };
     };
 }
