@@ -4,6 +4,12 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     nixpkgs-master.url = "github:NixOS/nixpkgs/master";
+    
+    # Optional: Opencode agents configuration (if you use it)
+    # agents = {
+    #   url = "github:thein3rovert/agents";
+    #   flake = false;
+    # };
   };
 
   outputs =
@@ -81,6 +87,7 @@
       };
     in
     # Merge framework exports with personal flake outputs
+    # personal-outputs includes: packages, devShells, checks, formatter, modules, lib
     personal-outputs
     // {
       # Export framework functions for other projects
@@ -88,13 +95,5 @@
 
       # Export arkadia config for reference
       arkadia = arkadia-config;
-
-      # Formatter for 'nix fmt'
-      formatter = {
-        x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.alejandra;
-        aarch64-linux = inputs.nixpkgs.legacyPackages.aarch64-linux.alejandra;
-        x86_64-darwin = inputs.nixpkgs.legacyPackages.x86_64-darwin.alejandra;
-        aarch64-darwin = inputs.nixpkgs.legacyPackages.aarch64-darwin.alejandra;
-      };
     };
 }

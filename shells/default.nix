@@ -9,7 +9,7 @@
 {
   # Default shell for working on this repository
   default = pkgs.mkShell {
-    name = "m3ta-nixpkgs-dev";
+    name = "thein3rovert-nixpkgs-dev";
 
     buildInputs = with pkgs; [
       nil # Nix LSP
@@ -20,7 +20,7 @@
     ];
 
     shellHook = ''
-      echo "🚀 m3ta-nixpkgs development environment"
+      echo "🚀 thein3rovert-nixpkgs development environment"
       echo "Available commands:"
       echo "  nix flake check    - Check flake validity"
       echo "  nix flake show     - Show flake outputs"

@@ -131,10 +131,12 @@ rec {
       lib = arkadia-lib;
 
       # Helper to create pkgs for a given system
-      createPkgsFor = system: import inputs.nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-      };
+      createPkgsFor =
+        system:
+        import inputs.nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
 
       # Helper function for all systems
       forAllSystems = genAttrs systems;
@@ -168,10 +170,7 @@ rec {
         let
           pkgs = createPkgsFor system;
         in
-        if hasPackages then
-          import packagesPath { inherit pkgs inputs; }
-        else
-          { }
+        if hasPackages then import packagesPath { inherit pkgs inputs; } else { }
       );
 
       # Export NixOS modules
@@ -190,25 +189,32 @@ rec {
       };
 
       # Export overlays (only if default.nix exists)
-      overlays = optionalAttrs (hasOverlays && builtins.pathExists "${overlaysPath}/default.nix") (import overlaysPath);
+      overlays = optionalAttrs (hasOverlays && builtins.pathExists "${overlaysPath}/default.nix") (
+        import overlaysPath
+      );
 
       # Export modifications overlay
-      modifications = if hasOverlays then
-        (final: prev: import "${overlaysPath}/mods" { inherit prev; })
-      else
-        (final: prev: { });
+      modifications =
+        if hasOverlays then
+          (final: prev: import "${overlaysPath}/mods" { inherit prev; })
+        else
+          (final: prev: { });
 
       # Export library
       lib = forAllSystems (system: lib);
 
-      # Export dev shells
+      # Export dev shells (Reference from m3tm3re)
       devShells = forAllSystems (
         system:
         let
           pkgs = createPkgsFor system;
         in
         if hasShells then
-          import shellsPath { inherit pkgs inputs; }
+          import shellsPath {
+            inherit pkgs inputs;
+            #INFO: Reference from https://code.m3ta.dev/m3tam3re/nixpkgs/src/branch/master/flake.nix
+            agents = inputs.agents or null;
+          }
         else
           { }
       );
@@ -218,12 +224,19 @@ rec {
         system:
         let
           pkgs = createPkgsFor system;
-          packages = if hasPackages then
-            import packagesPath { inherit pkgs inputs; }
-          else
-            { };
+          packages = if hasPackages then import packagesPath { inherit pkgs inputs; } else { };
         in
         builtins.mapAttrs (name: pkg: pkgs.lib.hydraJob pkg) packages
+        // {
+          # Add formatting check using treefmt
+          formatting = pkgs.runCommand "check-formatting" { } ''
+            ${pkgs.nixfmt-tree}/bin/treefmt --fail-on-change --no-cache -C ${src}
+            touch $out
+          '';
+        }
       );
+
+      # Formatter for 'nix fmt'
+      formatter = forAllSystems (system: (createPkgsFor system).nixfmt);
     };
 }
